@@ -1,1 +1,13 @@
-.idea
+# Air build directory
+tmp/
+
+# GoLand
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Environment variables
+.env
+.env.*
