@@ -7,7 +7,13 @@ import (
 )
 
 func Serve(r *gin.Engine) {
-	r.GET("/", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "Hello Thailand")
+	articlesGroup := r.Group("/api/v1/articles")
+
+	articlesGroup.GET("", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "Hello World")
+	})
+
+	articlesGroup.GET("/:id", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "Hi ID")
 	})
 }
