@@ -2,13 +2,18 @@ package main
 
 import (
 	"go-restful-api/routes"
+	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	r := gin.Default()
 	r.Static("/uploads", "./uploads")
 
@@ -19,5 +24,5 @@ func main() {
 
 	routes.Serve(r)
 
-	r.Run()
+	r.Run(":" + os.Getenv("PORT"))
 }
