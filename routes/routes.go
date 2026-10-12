@@ -13,6 +13,11 @@ type article struct {
 	Body  string
 }
 
+type createArticleForm struct {
+	Title string `json:"title" binding:"required"`
+	Body  string `json:"body" binding:"required"`
+}
+
 func Serve(r *gin.Engine) {
 	articles := []article{
 		{ID: 1, Title: "Title#1", Body: "Body#1"},
@@ -43,5 +48,23 @@ func Serve(r *gin.Engine) {
 			}
 		}
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Articles Not Found"})
+	})
+
+	articlesGroup.POST("", func(ctx *gin.Context) {
+		var form createArticleForm
+		err := ctx.ShouldBindJSON(&form)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		a := article{
+			ID:    uint(len(articles)) + 1,
+			Title: form.Title,
+			Body:  form.Body,
+		}
+
+		articles = append(articles, a)
+
+		ctx.JSON(http.StatusCreated, gin.H{"articles": a})
 	})
 }
