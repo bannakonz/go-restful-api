@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,14 @@ func Serve(r *gin.Engine) {
 	articlesGroup := r.Group("/api/v1/articles")
 
 	articlesGroup.GET("", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"articles": articles})
+		result := articles
+		limit := ctx.Query("limit")
+		if limit != "" {
+			n, _ := strconv.Atoi(limit)
+			result = result[:n]
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"articles": result})
 	})
 
 	articlesGroup.GET("/:id", func(ctx *gin.Context) {
