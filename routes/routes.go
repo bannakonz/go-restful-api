@@ -8,9 +8,9 @@ import (
 )
 
 type article struct {
-	ID    uint
-	Title string
-	Body  string
+	ID    uint   `json:"id"`
+	Title string `json:"title"`
+	Body  string `json:"body"`
 }
 
 type createArticleForm struct {
