@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"mime/multipart"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -11,11 +13,13 @@ type article struct {
 	ID    uint   `json:"id"`
 	Title string `json:"title"`
 	Body  string `json:"body"`
+	Image string `json:"image"`
 }
 
 type createArticleForm struct {
-	Title string `json:"title" binding:"required"`
-	Body  string `json:"body" binding:"required"`
+	Title string                `form:"title" binding:"required"`
+	Body  string                `form:"body" binding:"required"`
+	Image *multipart.FileHeader `form:"image" binding:"required"`
 }
 
 func Serve(r *gin.Engine) {
@@ -52,7 +56,7 @@ func Serve(r *gin.Engine) {
 
 	articlesGroup.POST("", func(ctx *gin.Context) {
 		var form createArticleForm
-		err := ctx.ShouldBindJSON(&form)
+		err := ctx.ShouldBind(&form)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -63,8 +67,25 @@ func Serve(r *gin.Engine) {
 			Body:  form.Body,
 		}
 
+		// Get file
+		file, _ := ctx.FormFile("image")
+
+		// Create Path
+		// ID=8 -> uploads/articles/8/image.png
+		path := "uploads/articles/" + strconv.Itoa(int(a.ID)) // สร้าง path
+		os.MkdirAll(path, 0755)                               // สร้าง folder เช่น folder ที่ 8
+
+		// Upload file
+		filename := path + "/" + file.Filename
+		if err := ctx.SaveUploadedFile(file, filename); err != nil { // dst(destination คือ ไฟล์ที่เราจะสร้างขึ้นมา คือการเอา path ต่อกับ file name
+
+		}
+
+		// Attach File to article
+		a.Image = "http://127.0.0.1:8080" + filename
 		articles = append(articles, a)
 
 		ctx.JSON(http.StatusCreated, gin.H{"articles": a})
+
 	})
 }
