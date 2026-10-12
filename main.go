@@ -10,6 +10,7 @@ import (
 func main() {
 
 	r := gin.Default()
+	r.Static("/uploads", "./uploads")
 
 	uploadDirs := [...]string{"articles", "users"}
 	for _, dir := range uploadDirs {

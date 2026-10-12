@@ -82,7 +82,7 @@ func Serve(r *gin.Engine) {
 		}
 
 		// Attach File to article
-		a.Image = "http://127.0.0.1:8080" + filename
+		a.Image = "http://127.0.0.1:8080" + "/" + filename
 		articles = append(articles, a)
 
 		ctx.JSON(http.StatusCreated, gin.H{"articles": a})
