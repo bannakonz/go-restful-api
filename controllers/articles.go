@@ -1,12 +1,8 @@
 package controllers
 
 import (
-	"mime/multipart"
-	"net/http"
-	"os"
-	"strconv"
-
 	"go-restful-api/models"
+	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,58 +25,13 @@ var articles []models.Article = []models.Article{
 }
 
 func (a *Articles) FindAll(ctx *gin.Context) {
-	result := articles
-	limit := ctx.Query("limit")
-	if limit != "" {
-		n, _ := strconv.Atoi(limit)
-		result = result[:n]
-	}
 
-	ctx.JSON(http.StatusOK, gin.H{"articles": result})
 }
 
 func (a *Articles) FindOne(ctx *gin.Context) { // Receiver ส่งแค่ memory address มา ทำให้ประสิทธิภาพดี
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	for _, item := range articles {
-		if item.ID == uint(id) {
-			ctx.JSON(http.StatusOK, gin.H{"articles": item})
-			return
-		}
-	}
-	ctx.JSON(http.StatusNotFound, gin.H{"error": "Articles Not Found"})
 }
 
 func (a *Articles) Create(ctx *gin.Context) {
-	var form createArticleForm
-	err := ctx.ShouldBind(&form)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	article := models.Article{
-		ID:    uint(len(articles)) + 1,
-		Title: form.Title,
-		Body:  form.Body,
-	}
 
-	// Get file
-	file, _ := ctx.FormFile("image")
-
-	// Create Path
-	// ID=8 -> uploads/articles/8/image.png
-	path := "uploads/articles/" + strconv.Itoa(int(article.ID)) // สร้าง path
-	os.MkdirAll(path, 0755)                                     // สร้าง folder เช่น folder ที่ 8
-
-	// Upload file
-	filename := path + "/" + file.Filename
-	if err := ctx.SaveUploadedFile(file, filename); err != nil { // dst(destination คือ ไฟล์ที่เราจะสร้างขึ้นมา คือการเอา path ต่อกับ file name
-
-	}
-
-	// Attach File to article
-	article.Image = os.Getenv("HOST") + "/" + filename
-	articles = append(articles, article)
-
-	ctx.JSON(http.StatusCreated, gin.H{"articles": article})
 
 }
