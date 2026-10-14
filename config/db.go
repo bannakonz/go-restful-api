@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -22,7 +23,7 @@ func InitDB() error {
 
 	var err error
 
-	db, err = gorm.Open(sqlite.Open("./gorm.db"), &gorm.Config{
+	db, err = gorm.Open(postgres.Open(os.Getenv("DATABASE_CONNECTION")), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 
