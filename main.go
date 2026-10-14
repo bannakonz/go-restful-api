@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-restful-api/config"
 	"go-restful-api/routes"
 	"log"
 	"os"
@@ -14,6 +15,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+	config.InitDB()
+	defer config.CloseDB()
 	r := gin.Default()
 	r.Static("/uploads", "./uploads")
 
