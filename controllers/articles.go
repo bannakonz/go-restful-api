@@ -33,7 +33,13 @@ type articleResponse struct {
 }
 
 func (a *Articles) FindAll(ctx *gin.Context) {
+	var articles []models.Article
+	a.DB.Find(&articles)
 
+	var serializedArticles []articleResponse
+	copier.Copy(&serializedArticles, &articles)
+
+	ctx.JSON(http.StatusOK, gin.H{"articles": serializedArticles})
 }
 
 func (a *Articles) FindOne(ctx *gin.Context) {
