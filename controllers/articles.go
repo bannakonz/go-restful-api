@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"errors"
 	"go-restful-api/models"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -22,6 +23,13 @@ type createArticleForm struct {
 	Body    string                `form:"body" binding:"required"`
 	Excerpt string                `form:"excerpt" binding:"required"`
 	Image   *multipart.FileHeader `form:"image" binding:"required"`
+}
+
+type updateArticleForm struct {
+	Title   string                `form:"title"`
+	Body    string                `form:"body"`
+	Excerpt string                `form:"excerpt"`
+	Image   *multipart.FileHeader `form:"image"`
 }
 
 type articleResponse struct {
@@ -88,27 +96,77 @@ func (a *Articles) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"articles": serializedArticle})
 }
 
-func (a *Articles) setArticleImage(ctx *gin.Context, article *models.Article) error {
+func (a *Articles) Update(ctx *gin.Context) {
+	var form updateArticleForm
+
+	if err := ctx.ShouldBind(&form); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	article, err := a.FindArticleById(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update article fields
+	updates := models.Article{
+		Title:   form.Title,
+		Body:    form.Body,
+		Excerpt: form.Excerpt,
+	}
+
+	if err := a.DB.Model(article).Updates(updates).Error; err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update image only if provided
+	if form.Image != nil {
+		if err := a.setArticleImage(ctx, article); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	var serializedArticle articleResponse
+	copier.Copy(&serializedArticle, article)
+
+	ctx.JSON(http.StatusOK, gin.H{"article": serializedArticle})
+}
+
+func (a *Articles) setArticleImage(
+	ctx *gin.Context,
+	article *models.Article,
+) error {
+
 	file, err := ctx.FormFile("image")
-	if err != nil || file == nil {
+	if err != nil {
 		return err
 	}
 
-	if article.Image != "" {
-		article.Image = strings.Replace(article.Image, os.Getenv("HOST"), "", 1)
-		pwd, _ := os.Getwd()
-		os.Remove(pwd + article.Image)
-
+	if file == nil {
+		return errors.New("image file is required")
 	}
 
 	path := "uploads/articles/" + strconv.Itoa(int(article.ID))
-	os.MkdirAll(path, 0755)
-	filename := path + "/" + file.Filename
+
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return err
+	}
+
+	filename := path + "/" + filepath.Base(file.Filename)
+
 	if err := ctx.SaveUploadedFile(file, filename); err != nil {
 		return err
 	}
+
 	article.Image = os.Getenv("HOST") + "/" + filename
-	a.DB.Save(article)
+
+	if err := a.DB.Save(article).Error; err != nil {
+		return err
+	}
 
 	return nil
 }
