@@ -39,14 +39,19 @@ type articlesPaging struct {
 
 func (a *Articles) FindAll(ctx *gin.Context) {
 	var articles []models.Article
-	a.DB.Find(&articles)
 
-	paging := pagingResource(ctx, a.DB.Order("id DESC"), &articles)
+	pagination := pagination{ctx: ctx, query: a.DB.Order("id DESC"), records: &articles}
+	paging := pagination.paginate()
 
 	var serializedArticles []articleResponse
 	copier.Copy(&serializedArticles, &articles)
 
-	ctx.JSON(http.StatusOK, gin.H{"articles": articlesPaging{Items: serializedArticles, Paging: paging}})
+	ctx.JSON(http.StatusOK, gin.H{
+		"articles": articlesPaging{
+			Items:  serializedArticles,
+			Paging: paging,
+		},
+	})
 }
 
 func (a *Articles) FindOne(ctx *gin.Context) {
