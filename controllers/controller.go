@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 
@@ -18,18 +17,32 @@ type pagingResult struct {
 	TotalPage int `json:"totalPage"`
 }
 
-func pagingResource(ctx *gin.Context, query *gorm.DB, records interface{}) *pagingResult {
-	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "12"))
-	var count int64
-	if err := query.Model(records).Count(&count).Error; err != nil {
-		return nil
-	}
-	fmt.Println(count)
+type pagination struct {
+	ctx     *gin.Context
+	query   *gorm.DB
+	records interface{}
+}
 
+func (p *pagination) paginate() *pagingResult {
+	page, _ := strconv.Atoi(p.ctx.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(p.ctx.DefaultQuery("limit", "12"))
+
+	/*
+		count records
+		 ต้องการให้ query.Model กับ query.Limit เข้าถึงฐานข้อมูลพร้อมกันได้
+		 จึงต้องแปลงการทำงานของการนับ count เป็น go routine
+	*/
+
+	// 2. Count records
+	ch := make(chan int)
+	go p.countRecords(ch)
+
+	count := <-ch
+	// 3.Find Record (Limit, Offset)
 	offset := (page - 1) * limit
-	query.Limit(limit).Offset(offset).Find(records)
+	p.query.Limit(limit).Offset(offset).Find(p.records)
 
+	// 4. Total Page
 	totalPage := int(math.Ceil(float64(count) / float64(limit))) // จำนวนทั้งหมด หาร limit แล้วปัดขึ้น
 
 	var nextPage int
@@ -48,4 +61,11 @@ func pagingResource(ctx *gin.Context, query *gorm.DB, records interface{}) *pagi
 		TotalPage: totalPage,
 	}
 
+}
+
+func (p *pagination) countRecords(ch chan int) {
+	var count int64
+	p.query.Model(p.records).Count(&count)
+
+	ch <- int(count)
 }
