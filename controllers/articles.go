@@ -136,6 +136,20 @@ func (a *Articles) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"article": serializedArticle})
 }
 
+func (a *Articles) Delete(ctx *gin.Context) {
+
+    article, err := a.FindArticleById(ctx)
+    if err != nil {
+        ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        return
+    }
+    if err := a.DB.Unscoped().Delete(article).Error; err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    ctx.Status(http.StatusNoContent)
+}
+
 func (a *Articles) setArticleImage(
 	ctx *gin.Context,
 	article *models.Article,
