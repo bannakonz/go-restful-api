@@ -32,6 +32,7 @@ func main() {
 	}()
 
 	migrations.Migrate()
+	//seed.Load()
 
 	// 4. Create upload directories
 	uploadDirs := []string{"articles", "users"}
