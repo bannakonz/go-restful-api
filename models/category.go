@@ -3,7 +3,8 @@ package models
 import "gorm.io/gorm"
 
 type Category struct {
-    gorm.Model
-    Name string `gorm:"not null"`
-    Description string `gorm:"not null"`
+	gorm.Model
+	Name        string `gorm:"not null"`
+	Description string `gorm:"not null"`
+	Articles    []Article
 }
