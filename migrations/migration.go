@@ -10,8 +10,9 @@ import (
 func Migrate() {
 	db := config.GetDB()
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
-	    m1791951215CreateArticlesTable(),
-	    m1792135831CreateCategoriesTable(),
+		m1791951215CreateArticlesTable(),
+		m1792135831CreateCategoriesTable(),
+		m1792383343AddCategoryIdToArticle(),
 	})
 
 	if err := m.Migrate(); err != nil {

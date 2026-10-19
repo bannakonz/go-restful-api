@@ -19,25 +19,32 @@ type Articles struct {
 }
 
 type createArticleForm struct {
-	Title   string                `form:"title" binding:"required"`
-	Body    string                `form:"body" binding:"required"`
-	Excerpt string                `form:"excerpt" binding:"required"`
-	Image   *multipart.FileHeader `form:"image" binding:"required"`
+	Title      string                `form:"title" binding:"required"`
+	Body       string                `form:"body" binding:"required"`
+	Excerpt    string                `form:"excerpt" binding:"required"`
+	CategoryId uint                  `form:"category_id" binding:"required"`
+	Image      *multipart.FileHeader `form:"image" binding:"required"`
 }
 
 type updateArticleForm struct {
-	Title   string                `form:"title"`
-	Body    string                `form:"body"`
-	Excerpt string                `form:"excerpt"`
-	Image   *multipart.FileHeader `form:"image"`
+	Title      string                `form:"title"`
+	Body       string                `form:"body"`
+	Excerpt    string                `form:"excerpt"`
+	CategoryId uint                  `form:"category_id"`
+	Image      *multipart.FileHeader `form:"image"`
 }
 
 type articleResponse struct {
-	ID      uint   `json:"id"`
-	Title   string `json:"title"`
-	Excerpt string `json:"excerpt"`
-	Body    string `json:"body"`
-	Image   string `json:"image"`
+	ID         uint   `json:"id"`
+	Title      string `json:"title"`
+	Excerpt    string `json:"excerpt"`
+	Body       string `json:"body"`
+	Image      string `json:"image"`
+	CategoryId uint   `json:"category_id"`
+	Category   struct {
+		ID   uint   `json:"id"`
+		Name string `json:"name"`
+	} `json:"category"`
 }
 
 type articlesPaging struct {
@@ -48,7 +55,7 @@ type articlesPaging struct {
 func (a *Articles) FindAll(ctx *gin.Context) {
 	var articles []models.Article
 
-	pagination := pagination{ctx: ctx, query: a.DB.Order("id DESC"), records: &articles}
+	pagination := pagination{ctx: ctx, query: a.DB.Preload("Category").Order("id DESC"), records: &articles}
 	paging := pagination.paginate()
 
 	var serializedArticles []articleResponse
@@ -138,16 +145,16 @@ func (a *Articles) Update(ctx *gin.Context) {
 
 func (a *Articles) Delete(ctx *gin.Context) {
 
-    article, err := a.FindArticleById(ctx)
-    if err != nil {
-        ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-        return
-    }
-    if err := a.DB.Unscoped().Delete(article).Error; err != nil {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-    ctx.Status(http.StatusNoContent)
+	article, err := a.FindArticleById(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	if err := a.DB.Unscoped().Delete(article).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
 
 func (a *Articles) setArticleImage(
@@ -189,7 +196,7 @@ func (a *Articles) FindArticleById(ctx *gin.Context) (*models.Article, error) {
 	var article models.Article
 	id := ctx.Param("id")
 
-	if err := a.DB.First(&article, id).Error; err != nil {
+	if err := a.DB.Preload("Category").First(&article, id).Error; err != nil {
 		return nil, err
 	}
 
