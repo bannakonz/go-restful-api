@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"errors"
 	"go-restful-api/config"
 	"go-restful-api/models"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -144,27 +146,49 @@ func (a *Auth) UpdateProfile(ctx *gin.Context) {
 }
 
 func setUserImage(ctx *gin.Context, user *models.User) error {
-	file, _ := ctx.FormFile("avatar")
-	if file != nil {
+	file, err := ctx.FormFile("avatar")
+
+	if errors.Is(err, http.ErrMissingFile) {
 		return nil
 	}
-
-	if user.Avatar != "" {
-		user.Avatar = strings.Replace(user.Avatar, os.Getenv("HOST"), "", 1)
-		pwd, _ := os.Getwd()
-		os.Remove(pwd + user.Avatar)
+	if err != nil {
+		return err
 	}
 
+	oldAvatar := user.Avatar
+
 	path := "uploads/users/" + strconv.Itoa(int(user.ID))
-	os.MkdirAll(path, os.ModePerm)
-	filename := path + "/" + file.Filename
+
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return err
+	}
+
+	filename := path + "/" + filepath.Base(file.Filename)
+
 	if err := ctx.SaveUploadedFile(file, filename); err != nil {
 		return err
 	}
 
 	db := config.GetDB()
-	user.Avatar = os.Getenv("HOST") + "/" + filename
-	db.Save(user)
+	if db == nil {
+		return errors.New("database not initialized")
+	}
+
+	host := strings.TrimRight(os.Getenv("HOST"), "/")
+	user.Avatar = host + "/" + filename
+
+	if err := db.Save(user).Error; err != nil {
+		return err
+	}
+
+	// ลบรูปเดิมหลังจากบันทึกรูปใหม่สำเร็จ
+	if oldAvatar != "" {
+		oldPath := strings.TrimPrefix(oldAvatar, host+"/")
+
+		if strings.HasPrefix(oldPath, path+"/") && oldPath != filename {
+			_ = os.Remove(oldPath)
+		}
+	}
 
 	return nil
 }
