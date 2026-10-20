@@ -45,6 +45,10 @@ type articleResponse struct {
 		ID   uint   `json:"id"`
 		Name string `json:"name"`
 	} `json:"category"`
+	User struct {
+		Name   string `json:"name"`
+		Avatar string `json:"avatar"`
+	} `json:"user"`
 }
 
 type articlesPaging struct {
@@ -55,7 +59,7 @@ type articlesPaging struct {
 func (a *Articles) FindAll(ctx *gin.Context) {
 	var articles []models.Article
 
-	pagination := pagination{ctx: ctx, query: a.DB.Preload("Category").Order("id DESC"), records: &articles}
+	pagination := pagination{ctx: ctx, query: a.DB.Preload("User").Preload("Category").Order("id DESC"), records: &articles}
 	paging := pagination.paginate()
 
 	var serializedArticles []articleResponse
@@ -89,14 +93,41 @@ func (a *Articles) Create(ctx *gin.Context) {
 	}
 
 	var article models.Article
+
+	user, ok := ctx.Get("sub")
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	currentUser, ok := user.(*models.User)
+	if !ok || currentUser == nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})
+		return
+	}
 	copier.Copy(&article, &form)
+	article.UserID = currentUser.ID
 
 	if err := a.DB.Create(&article).Error; err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
 	}
 
-	a.setArticleImage(ctx, &article)
+	if err := a.setArticleImage(ctx, &article); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Load associations
+	if err := a.DB.Preload("User").Preload("Category").
+		First(&article, article.ID).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	serializedArticle := articleResponse{}
 	copier.Copy(&serializedArticle, &article)
 
@@ -196,7 +227,7 @@ func (a *Articles) FindArticleById(ctx *gin.Context) (*models.Article, error) {
 	var article models.Article
 	id := ctx.Param("id")
 
-	if err := a.DB.Preload("Category").First(&article, id).Error; err != nil {
+	if err := a.DB.Preload("User").Preload("Category").First(&article, id).Error; err != nil {
 		return nil, err
 	}
 
