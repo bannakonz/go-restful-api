@@ -11,13 +11,19 @@ import (
 func Serve(r *gin.Engine) {
 	db := config.GetDB()
 	v1 := r.Group("/api/v1")
-	articlesGroup := v1.Group("articles")
+
+	// middleware ของตัว gin , อ่านค่า jwt จาก header แล้วเอา jwt มาดึงในส่วน payload หาค่าของ sub แล้ว -> หา user -> แล้วคืน user กลับออกมาในส่วนของ context
+	authenticate := middleware.Authenticate().MiddlewareFunc()
+
 	authGroup := v1.Group("auth")
+	articlesGroup := v1.Group("articles")
+	
 	authGroupController := controllers.Auth{DB: db}
 
 	{
 		authGroup.POST("/signup", authGroupController.Signup)
 		authGroup.POST("/sign-in", middleware.Authenticate().LoginHandler)
+		authGroup.GET("/profile", authenticate, authGroupController.GetProfile)
 	}
 
 	articleController := controllers.Articles{DB: db}
