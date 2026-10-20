@@ -17,13 +17,14 @@ func Serve(r *gin.Engine) {
 
 	authGroup := v1.Group("auth")
 	articlesGroup := v1.Group("articles")
-	
+
 	authGroupController := controllers.Auth{DB: db}
 
 	{
 		authGroup.POST("/signup", authGroupController.Signup)
 		authGroup.POST("/sign-in", middleware.Authenticate().LoginHandler)
 		authGroup.GET("/profile", authenticate, authGroupController.GetProfile)
+		authGroup.PATCH("/profile", authenticate, authGroupController.UpdateProfile)
 	}
 
 	articleController := controllers.Articles{DB: db}
