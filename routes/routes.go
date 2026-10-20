@@ -11,6 +11,12 @@ func Serve(r *gin.Engine) {
 	db := config.GetDB()
 	v1 := r.Group("/api/v1")
 	articlesGroup := v1.Group("articles")
+	authGroup := v1.Group("auth")
+	authGroupController := controllers.Auth{DB: db}
+
+	{
+		authGroup.POST("/signup", authGroupController.Signup)
+	}
 
 	articleController := controllers.Articles{DB: db}
 	{
@@ -21,15 +27,14 @@ func Serve(r *gin.Engine) {
 		articlesGroup.DELETE("/:id", articleController.Delete)
 	}
 
-
-    categoriesGroup := v1.Group("categories")
+	categoriesGroup := v1.Group("categories")
 	categoryController := controllers.Categories{DB: db}
-    	{
-    		categoriesGroup.GET("", categoryController.FindAll)
-    		categoriesGroup.GET("/:id", categoryController.FindOne)
-    		categoriesGroup.POST("", categoryController.Create)
-    		categoriesGroup.PATCH("/:id", categoryController.Update)
-    		categoriesGroup.DELETE("/:id", categoryController.Delete)
-    	}
+	{
+		categoriesGroup.GET("", categoryController.FindAll)
+		categoriesGroup.GET("/:id", categoryController.FindOne)
+		categoriesGroup.POST("", categoryController.Create)
+		categoriesGroup.PATCH("/:id", categoryController.Update)
+		categoriesGroup.DELETE("/:id", categoryController.Delete)
+	}
 
 }
