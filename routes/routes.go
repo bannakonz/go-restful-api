@@ -3,6 +3,7 @@ package routes
 import (
 	"go-restful-api/config"
 	"go-restful-api/controllers"
+	"go-restful-api/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,7 @@ func Serve(r *gin.Engine) {
 
 	{
 		authGroup.POST("/signup", authGroupController.Signup)
+		authGroup.POST("/sign-in", middleware.Authenticate().LoginHandler)
 	}
 
 	articleController := controllers.Articles{DB: db}
