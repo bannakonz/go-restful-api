@@ -1,15 +1,9 @@
 package controllers
 
 import (
-	"errors"
-	"go-restful-api/config"
 	"go-restful-api/models"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -36,14 +30,6 @@ type authResponse struct {
 	Email string `json:"email"`
 }
 
-type userResponse struct {
-	ID     uint   `json:"id"`
-	Email  string `json:"email"`
-	Avatar string `json:"avatar"`
-	Name   string `json:"name"`
-	Role   string `json:"role"`
-}
-
 /*
 GetProfile
  1. /auth/profile => JWT => sub (UserId) => user
@@ -55,7 +41,7 @@ func (a *Auth) GetProfile(ctx *gin.Context) {
 	user := sub.(*models.User)
 
 	var serializedUser userResponse
-	copier.Copy(&serializedUser, &user)
+	copier.Copy(&serializedUser, user)
 	ctx.JSON(http.StatusOK, gin.H{"user": serializedUser})
 }
 
@@ -143,52 +129,4 @@ func (a *Auth) UpdateProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"user": serializedUser,
 	})
-}
-
-func setUserImage(ctx *gin.Context, user *models.User) error {
-	file, err := ctx.FormFile("avatar")
-
-	if errors.Is(err, http.ErrMissingFile) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	oldAvatar := user.Avatar
-
-	path := "uploads/users/" + strconv.Itoa(int(user.ID))
-
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-
-	filename := path + "/" + filepath.Base(file.Filename)
-
-	if err := ctx.SaveUploadedFile(file, filename); err != nil {
-		return err
-	}
-
-	db := config.GetDB()
-	if db == nil {
-		return errors.New("database not initialized")
-	}
-
-	host := strings.TrimRight(os.Getenv("HOST"), "/")
-	user.Avatar = host + "/" + filename
-
-	if err := db.Save(user).Error; err != nil {
-		return err
-	}
-
-	// ลบรูปเดิมหลังจากบันทึกรูปใหม่สำเร็จ
-	if oldAvatar != "" {
-		oldPath := strings.TrimPrefix(oldAvatar, host+"/")
-
-		if strings.HasPrefix(oldPath, path+"/") && oldPath != filename {
-			_ = os.Remove(oldPath)
-		}
-	}
-
-	return nil
 }
