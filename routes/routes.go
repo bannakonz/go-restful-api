@@ -18,13 +18,26 @@ func Serve(r *gin.Engine) {
 	authGroup := v1.Group("auth")
 	articlesGroup := v1.Group("articles")
 
-	authGroupController := controllers.Auth{DB: db}
+	authController := controllers.Auth{DB: db}
 
 	{
-		authGroup.POST("/signup", authGroupController.Signup)
+		authGroup.POST("/signup", authController.Signup)
 		authGroup.POST("/sign-in", middleware.Authenticate().LoginHandler)
-		authGroup.GET("/profile", authenticate, authGroupController.GetProfile)
-		authGroup.PATCH("/profile", authenticate, authGroupController.UpdateProfile)
+		authGroup.GET("/profile", authenticate, authController.GetProfile)
+		authGroup.PATCH("/profile", authenticate, authController.UpdateProfile)
+	}
+
+	usersGroup := v1.Group("users")
+	usersController := controllers.Users{DB: db}
+	usersGroup.Use(authenticate)
+	{
+		usersGroup.GET("", usersController.FindAll)
+		usersGroup.POST("", usersController.Create)
+		usersGroup.GET("/:id", usersController.FindOne)
+		usersGroup.PATCH("/:id", usersController.Update)
+		usersGroup.DELETE("/:id", usersController.Delete)
+		usersGroup.PATCH("/:id/promote", usersController.Promote)
+		usersGroup.PATCH("/:id/demote", usersController.Demote)
 	}
 
 	articleController := controllers.Articles{DB: db}
