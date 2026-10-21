@@ -51,6 +51,13 @@ type usersPaging struct {
 }
 
 func (u *Users) FindAll(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	var users []models.User
 	query := u.DB.Order("id DESC")
 
@@ -73,6 +80,13 @@ func (u *Users) FindAll(ctx *gin.Context) {
 }
 
 func (u *Users) Create(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	var form createUserForm
 	if err := ctx.ShouldBindJSON(&form); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
@@ -109,6 +123,13 @@ func (u *Users) Create(ctx *gin.Context) {
 }
 
 func (u *Users) Update(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	var form updateUserForm
 	if err := ctx.ShouldBindJSON(&form); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
@@ -161,6 +182,13 @@ func (u *Users) Update(ctx *gin.Context) {
 }
 
 func (u *Users) Delete(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	user, err := u.findUserById(ctx)
 
 	if err != nil {
@@ -181,6 +209,13 @@ func (u *Users) Delete(ctx *gin.Context) {
 }
 
 func (u *Users) Promote(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	user, err := u.findUserById(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
@@ -206,6 +241,13 @@ func (u *Users) Promote(ctx *gin.Context) {
 }
 
 func (u *Users) Demote(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	user, err := u.findUserById(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
@@ -230,6 +272,13 @@ func (u *Users) Demote(ctx *gin.Context) {
 }
 
 func (u *Users) FindOne(ctx *gin.Context) {
+	sub, _ := ctx.Get("sub")
+	if sub.(*models.User).Role != "Admin" {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
 	user, err := u.findUserById(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{

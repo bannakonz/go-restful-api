@@ -27,17 +27,17 @@ func Serve(r *gin.Engine) {
 		authGroup.PATCH("/profile", authenticate, authController.UpdateProfile)
 	}
 
-	userGroup := v1.Group("users")
-	userController := controllers.Users{DB: db}
-
+	usersGroup := v1.Group("users")
+	usersController := controllers.Users{DB: db}
+	usersGroup.Use(authenticate)
 	{
-		userGroup.GET("", userController.FindAll)
-		userGroup.POST("", userController.Create)
-		userGroup.GET("/:id", userController.FindOne)
-		userGroup.PATCH("/:id", userController.Update)
-		userGroup.DELETE("/:id", userController.Delete)
-		userGroup.PATCH("/:id/promote", userController.Promote)
-		userGroup.PATCH("/:id/demote", userController.Demote)
+		usersGroup.GET("", usersController.FindAll)
+		usersGroup.POST("", usersController.Create)
+		usersGroup.GET("/:id", usersController.FindOne)
+		usersGroup.PATCH("/:id", usersController.Update)
+		usersGroup.DELETE("/:id", usersController.Delete)
+		usersGroup.PATCH("/:id/promote", usersController.Promote)
+		usersGroup.PATCH("/:id/demote", usersController.Demote)
 	}
 
 	articleController := controllers.Articles{DB: db}
