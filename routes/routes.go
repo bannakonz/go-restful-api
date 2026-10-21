@@ -14,10 +14,9 @@ func Serve(r *gin.Engine) {
 
 	// middleware ของตัว gin , อ่านค่า jwt จาก header แล้วเอา jwt มาดึงในส่วน payload หาค่าของ sub แล้ว -> หา user -> แล้วคืน user กลับออกมาในส่วนของ context
 	authenticate := middleware.Authenticate().MiddlewareFunc()
+	authorize := middleware.Authorize()
 
 	authGroup := v1.Group("auth")
-	articlesGroup := v1.Group("articles")
-
 	authController := controllers.Auth{DB: db}
 
 	{
@@ -27,9 +26,10 @@ func Serve(r *gin.Engine) {
 		authGroup.PATCH("/profile", authenticate, authController.UpdateProfile)
 	}
 
-	usersGroup := v1.Group("users")
+
 	usersController := controllers.Users{DB: db}
-	usersGroup.Use(authenticate)
+	usersGroup := v1.Group("users")
+	usersGroup.Use(authenticate, authorize)
 	{
 		usersGroup.GET("", usersController.FindAll)
 		usersGroup.POST("", usersController.Create)
@@ -41,16 +41,20 @@ func Serve(r *gin.Engine) {
 	}
 
 	articleController := controllers.Articles{DB: db}
+	articlesGroup := v1.Group("articles")
+	articlesGroup.GET("", articleController.FindAll)
+	articlesGroup.GET("/:id", articleController.FindOne)
+	articlesGroup.Use(authenticate, authorize)
 	{
-		articlesGroup.GET("", articleController.FindAll)
-		articlesGroup.GET("/:id", articleController.FindOne)
 		articlesGroup.POST("", authenticate, articleController.Create)
 		articlesGroup.PATCH("/:id", articleController.Update)
 		articlesGroup.DELETE("/:id", articleController.Delete)
 	}
 
-	categoriesGroup := v1.Group("categories")
+
 	categoryController := controllers.Categories{DB: db}
+	categoriesGroup := v1.Group("categories")
+	categoriesGroup.Use(authenticate, authorize)
 	{
 		categoriesGroup.GET("", categoryController.FindAll)
 		categoriesGroup.GET("/:id", categoryController.FindOne)
