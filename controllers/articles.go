@@ -1,86 +1,263 @@
 package controllers
 
 import (
+	"errors"
+	"go-restful-api/models"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 
-	"go-restful-api/models"
-
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/copier"
+	"gorm.io/gorm"
 )
 
 type Articles struct {
+	DB *gorm.DB
 }
 
 type createArticleForm struct {
-	Title string                `form:"title" binding:"required"`
-	Body  string                `form:"body" binding:"required"`
-	Image *multipart.FileHeader `form:"image" binding:"required"`
+	Title      string                `form:"title" binding:"required"`
+	Body       string                `form:"body" binding:"required"`
+	Excerpt    string                `form:"excerpt" binding:"required"`
+	CategoryId uint                  `form:"category_id" binding:"required"`
+	Image      *multipart.FileHeader `form:"image" binding:"required"`
 }
 
-var articles []models.Article = []models.Article{
-	{ID: 1, Title: "Title#1", Body: "Body#1"},
-	{ID: 2, Title: "Title#2", Body: "Body#2"},
-	{ID: 3, Title: "Title#3", Body: "Body#3"},
-	{ID: 4, Title: "Title#4", Body: "Body#4"},
-	{ID: 5, Title: "Title#5", Body: "Body#5"},
+type updateArticleForm struct {
+	Title      string                `form:"title"`
+	Body       string                `form:"body"`
+	Excerpt    string                `form:"excerpt"`
+	CategoryId uint                  `form:"category_id"`
+	Image      *multipart.FileHeader `form:"image"`
+}
+
+type articleResponse struct {
+	ID         uint   `json:"id"`
+	Title      string `json:"title"`
+	Excerpt    string `json:"excerpt"`
+	Body       string `json:"body"`
+	Image      string `json:"image"`
+	CategoryId uint   `json:"category_id"`
+	Category   struct {
+		ID   uint   `json:"id"`
+		Name string `json:"name"`
+	} `json:"category"`
+	User struct {
+		Name   string `json:"name"`
+		Avatar string `json:"avatar"`
+	} `json:"user"`
+}
+
+type createOrUpdateResponse struct {
+	ID         uint   `json:"id"`
+	Title      string `json:"title"`
+	Excerpt    string `json:"excerpt"`
+	Body       string `json:"body"`
+	Image      string `json:"image"`
+	CategoryId uint   `json:"category_id"`
+	UserID     uint   `json:"userId"`
+}
+
+type articlesPaging struct {
+	Items  []articleResponse `json:"items"`
+	Paging *pagingResult     `json:"paging"`
 }
 
 func (a *Articles) FindAll(ctx *gin.Context) {
-	result := articles
-	limit := ctx.Query("limit")
-	if limit != "" {
-		n, _ := strconv.Atoi(limit)
-		result = result[:n]
+	var articles []models.Article
+
+	query := a.DB.Preload("User").Preload("Category").Order("id DESC")
+
+	categoryId := ctx.Query("categoryId")
+
+	if categoryId != "" {
+		query = query.Where("category_id = ?", categoryId)
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"articles": result})
+	term := ctx.Query("term")
+	if term != "" {
+		query = query.Where("title ILIKE ?", "%"+term+"%")
+	}
+
+	pagination := pagination{
+		ctx:     ctx,
+		query:   query,
+		records: &articles,
+	}
+
+	paging := pagination.paginate()
+
+	var serializedArticles []articleResponse
+	copier.Copy(&serializedArticles, &articles)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"articles": articlesPaging{
+			Items:  serializedArticles,
+			Paging: paging,
+		},
+	})
 }
 
-func (a *Articles) FindOne(ctx *gin.Context) { // Receiver ส่งแค่ memory address มา ทำให้ประสิทธิภาพดี
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	for _, item := range articles {
-		if item.ID == uint(id) {
-			ctx.JSON(http.StatusOK, gin.H{"articles": item})
-			return
-		}
+func (a *Articles) FindOne(ctx *gin.Context) {
+	article, err := a.FindArticleById(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
 	}
-	ctx.JSON(http.StatusNotFound, gin.H{"error": "Articles Not Found"})
+
+	serializedArticle := articleResponse{}
+	copier.Copy(&serializedArticle, article)
+	ctx.JSON(http.StatusOK, gin.H{"article": serializedArticle})
 }
 
 func (a *Articles) Create(ctx *gin.Context) {
 	var form createArticleForm
-	err := ctx.ShouldBind(&form)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := ctx.ShouldBind(&form); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
 	}
-	article := models.Article{
-		ID:    uint(len(articles)) + 1,
-		Title: form.Title,
-		Body:  form.Body,
+
+	var article models.Article
+
+	user, ok := ctx.Get("sub")
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	currentUser, ok := user.(*models.User)
+	if !ok || currentUser == nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})
+		return
+	}
+	copier.Copy(&article, &form)
+	article.UserID = currentUser.ID
+
+	if err := a.DB.Create(&article).Error; err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
 	}
 
-	// Get file
-	file, _ := ctx.FormFile("image")
-
-	// Create Path
-	// ID=8 -> uploads/articles/8/image.png
-	path := "uploads/articles/" + strconv.Itoa(int(article.ID)) // สร้าง path
-	os.MkdirAll(path, 0755)                                     // สร้าง folder เช่น folder ที่ 8
-
-	// Upload file
-	filename := path + "/" + file.Filename
-	if err := ctx.SaveUploadedFile(file, filename); err != nil { // dst(destination คือ ไฟล์ที่เราจะสร้างขึ้นมา คือการเอา path ต่อกับ file name
-
+	if err := a.setArticleImage(ctx, &article); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
-	// Attach File to article
+	// Load associations
+	if err := a.DB.Preload("User").Preload("Category").
+		First(&article, article.ID).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	serializedArticle := createOrUpdateResponse{}
+	copier.Copy(&serializedArticle, &article)
+
+	ctx.JSON(http.StatusCreated, gin.H{"articles": serializedArticle})
+}
+
+func (a *Articles) Update(ctx *gin.Context) {
+	var form updateArticleForm
+
+	if err := ctx.ShouldBind(&form); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	article, err := a.FindArticleById(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update article fields
+	updates := models.Article{
+		Title:   form.Title,
+		Body:    form.Body,
+		Excerpt: form.Excerpt,
+	}
+
+	if err := a.DB.Model(article).Updates(updates).Error; err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update image only if provided
+	if form.Image != nil {
+		if err := a.setArticleImage(ctx, article); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	var serializedArticle createOrUpdateResponse
+	copier.Copy(&serializedArticle, article)
+
+	ctx.JSON(http.StatusOK, gin.H{"article": serializedArticle})
+}
+
+func (a *Articles) Delete(ctx *gin.Context) {
+
+	article, err := a.FindArticleById(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	if err := a.DB.Unscoped().Delete(article).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+func (a *Articles) setArticleImage(
+	ctx *gin.Context,
+	article *models.Article,
+) error {
+
+	file, err := ctx.FormFile("image")
+	if err != nil {
+		return err
+	}
+
+	if file == nil {
+		return errors.New("image file is required")
+	}
+
+	path := "uploads/articles/" + strconv.Itoa(int(article.ID))
+
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return err
+	}
+
+	filename := path + "/" + filepath.Base(file.Filename)
+
+	if err := ctx.SaveUploadedFile(file, filename); err != nil {
+		return err
+	}
+
 	article.Image = os.Getenv("HOST") + "/" + filename
-	articles = append(articles, article)
 
-	ctx.JSON(http.StatusCreated, gin.H{"articles": article})
+	if err := a.DB.Save(article).Error; err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (a *Articles) FindArticleById(ctx *gin.Context) (*models.Article, error) {
+	var article models.Article
+	id := ctx.Param("id")
+
+	if err := a.DB.Preload("User").Preload("Category").First(&article, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &article, nil
 }

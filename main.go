@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-restful-api/migrations"
 	"log"
 	"os"
 	"path/filepath"
@@ -29,6 +30,9 @@ func main() {
 			log.Println("Failed to close database: ", err)
 		}
 	}()
+
+	migrations.Migrate()
+	//seed.Load()
 
 	// 4. Create upload directories
 	uploadDirs := []string{"articles", "users"}
