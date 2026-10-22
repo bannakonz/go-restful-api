@@ -19,7 +19,7 @@ type dashboardArticle struct {
 }
 
 type dashboardResponse struct {
-	LatestArticles []dashboardArticle `json:"lastestArticles"`
+	LatestArticles []dashboardArticle `json:"latestArticles"`
 	UsersCount     []struct {
 		Role  string `json:"role"`
 		Count int64  `json:"count"`
