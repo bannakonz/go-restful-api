@@ -17,7 +17,7 @@ func m1792383343AddCategoryIdToArticle() *gormigrate.Migration {
 			var articles []models.Article
 			tx.Unscoped().Find(&articles)
 			for _, article := range articles {
-				article.CategoryId = 2
+				article.CategoryID = 2
 				tx.Save(&article)
 			}
 

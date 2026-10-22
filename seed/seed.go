@@ -105,7 +105,7 @@ func Load() {
 			Title:      faker.Sentence() + " #" + strconv.Itoa(i),
 			Body:       faker.Paragraph(),
 			Image:      "https://picsum.photos/seed/article-" + strconv.Itoa(i) + "/300/200",
-			CategoryId: categories[rand.IntN(len(categories))].ID,
+			CategoryID: categories[rand.IntN(len(categories))].ID,
 			UserID:     users[rand.IntN(len(users))].ID,
 		}
 

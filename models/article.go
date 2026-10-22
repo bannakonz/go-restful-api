@@ -8,7 +8,7 @@ type Article struct {
 	Excerpt    string `gorm:"not null"`
 	Body       string `gorm:"not null"`
 	Image      string `gorm:"not null"`
-	CategoryId uint
+	CategoryID uint
 	Category   Category
 	UserID     uint
 	User       User

@@ -18,7 +18,7 @@ type categoryResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Articles    []struct {
-		Id    uint   `json:"id"`
+		ID    uint   `json:"id"`
 		Title string `json:"title"`
 	} `json:"articles"`
 }
