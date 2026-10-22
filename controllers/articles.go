@@ -51,6 +51,16 @@ type articleResponse struct {
 	} `json:"user"`
 }
 
+type createOrUpdateResponse struct {
+	ID         uint   `json:"id"`
+	Title      string `json:"title"`
+	Excerpt    string `json:"excerpt"`
+	Body       string `json:"body"`
+	Image      string `json:"image"`
+	CategoryId uint   `json:"category_id"`
+	UserID     uint   `json:"userId"`
+}
+
 type articlesPaging struct {
 	Items  []articleResponse `json:"items"`
 	Paging *pagingResult     `json:"paging"`
@@ -59,7 +69,25 @@ type articlesPaging struct {
 func (a *Articles) FindAll(ctx *gin.Context) {
 	var articles []models.Article
 
-	pagination := pagination{ctx: ctx, query: a.DB.Preload("User").Preload("Category").Order("id DESC"), records: &articles}
+	query := a.DB.Preload("User").Preload("Category").Order("id DESC")
+
+	categoryId := ctx.Query("categoryId")
+
+	if categoryId != "" {
+		query = query.Where("category_id = ?", categoryId)
+	}
+
+	term := ctx.Query("term")
+	if term != "" {
+		query = query.Where("title ILIKE ?", "%"+term+"%")
+	}
+
+	pagination := pagination{
+		ctx:     ctx,
+		query:   query,
+		records: &articles,
+	}
+
 	paging := pagination.paginate()
 
 	var serializedArticles []articleResponse
@@ -128,7 +156,7 @@ func (a *Articles) Create(ctx *gin.Context) {
 		return
 	}
 
-	serializedArticle := articleResponse{}
+	serializedArticle := createOrUpdateResponse{}
 	copier.Copy(&serializedArticle, &article)
 
 	ctx.JSON(http.StatusCreated, gin.H{"articles": serializedArticle})
@@ -168,7 +196,7 @@ func (a *Articles) Update(ctx *gin.Context) {
 		}
 	}
 
-	var serializedArticle articleResponse
+	var serializedArticle createOrUpdateResponse
 	copier.Copy(&serializedArticle, article)
 
 	ctx.JSON(http.StatusOK, gin.H{"article": serializedArticle})

@@ -26,7 +26,6 @@ func Serve(r *gin.Engine) {
 		authGroup.PATCH("/profile", authenticate, authController.UpdateProfile)
 	}
 
-
 	usersController := controllers.Users{DB: db}
 	usersGroup := v1.Group("users")
 	usersGroup.Use(authenticate, authorize)
@@ -51,16 +50,22 @@ func Serve(r *gin.Engine) {
 		articlesGroup.DELETE("/:id", articleController.Delete)
 	}
 
-
 	categoryController := controllers.Categories{DB: db}
 	categoriesGroup := v1.Group("categories")
+	categoriesGroup.GET("", categoryController.FindAll)
+	categoriesGroup.GET("/:id", categoryController.FindOne)
 	categoriesGroup.Use(authenticate, authorize)
 	{
-		categoriesGroup.GET("", categoryController.FindAll)
-		categoriesGroup.GET("/:id", categoryController.FindOne)
 		categoriesGroup.POST("", categoryController.Create)
 		categoriesGroup.PATCH("/:id", categoryController.Update)
 		categoriesGroup.DELETE("/:id", categoryController.Delete)
+	}
+
+	dashboardController := controllers.Dashboard{DB: db}
+	dashboardGroup := v1.Group("dashboard")
+	dashboardGroup.Use(authenticate, authorize)
+	{
+		dashboardGroup.GET("", dashboardController.GetInfo)
 	}
 
 }
