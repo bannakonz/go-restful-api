@@ -22,7 +22,7 @@ type createArticleForm struct {
 	Title      string                `form:"title" binding:"required"`
 	Body       string                `form:"body" binding:"required"`
 	Excerpt    string                `form:"excerpt" binding:"required"`
-	CategoryId uint                  `form:"category_id" binding:"required"`
+	CategoryID uint                  `form:"category_id" binding:"required"`
 	Image      *multipart.FileHeader `form:"image" binding:"required"`
 }
 
@@ -30,7 +30,7 @@ type updateArticleForm struct {
 	Title      string                `form:"title"`
 	Body       string                `form:"body"`
 	Excerpt    string                `form:"excerpt"`
-	CategoryId uint                  `form:"category_id"`
+	CategoryID uint                  `form:"category_id"`
 	Image      *multipart.FileHeader `form:"image"`
 }
 
@@ -40,7 +40,7 @@ type articleResponse struct {
 	Excerpt    string `json:"excerpt"`
 	Body       string `json:"body"`
 	Image      string `json:"image"`
-	CategoryId uint   `json:"category_id"`
+	CategoryID uint   `json:"category_id"`
 	Category   struct {
 		ID   uint   `json:"id"`
 		Name string `json:"name"`
@@ -57,8 +57,8 @@ type createOrUpdateResponse struct {
 	Excerpt    string `json:"excerpt"`
 	Body       string `json:"body"`
 	Image      string `json:"image"`
-	CategoryId uint   `json:"category_id"`
-	UserID     uint   `json:"userId"`
+	CategoryID uint   `json:"category_id"`
+	UserID     uint   `json:"user_id"`
 }
 
 type articlesPaging struct {
