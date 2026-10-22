@@ -14,6 +14,7 @@ type Categories struct {
 }
 
 type categoryResponse struct {
+	ID          uint   `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Articles    []struct {
@@ -33,6 +34,7 @@ type updateCategoryForm struct {
 }
 
 type allCategoryResponse struct {
+	ID          uint   `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
