@@ -178,9 +178,10 @@ func (a *Articles) Update(ctx *gin.Context) {
 
 	// Update article fields
 	updates := models.Article{
-		Title:   form.Title,
-		Body:    form.Body,
-		Excerpt: form.Excerpt,
+		Title:      form.Title,
+		Body:       form.Body,
+		Excerpt:    form.Excerpt,
+		CategoryID: form.CategoryID,
 	}
 
 	if err := a.DB.Model(article).Updates(updates).Error; err != nil {
