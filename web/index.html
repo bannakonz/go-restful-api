@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f7fb">
+  <title>Workspace · Go RESTful API</title>
+  <!-- Relative paths work both in Gin /ui/ and when previewing the HTML file. API calls still require Gin. -->
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="brand"><div class="brand-mark">G<span>o</span></div><div><strong>Go Workspace</strong><small>Content management</small></div></div>
+      <div class="nav-caption">WORKSPACE</div>
+      <nav aria-label="Main navigation">
+        <button type="button" data-tab="articles" class="nav-link selected"><span class="nav-icon">▤</span><span>Articles</span></button>
+        <button type="button" data-tab="categories" class="nav-link"><span class="nav-icon">▦</span><span>Categories</span></button>
+        <button type="button" data-tab="dashboard" class="nav-link"><span class="nav-icon">◫</span><span>Dashboard</span><span class="nav-badge">Admin</span></button>
+        <button type="button" data-tab="users" class="nav-link"><span class="nav-icon">♙</span><span>Users</span><span class="nav-badge">Admin</span></button>
+      </nav>
+      <div class="nav-caption utilities-caption">YOUR ACCOUNT</div>
+      <nav aria-label="Account and tools">
+        <button type="button" data-tab="account" class="nav-link"><span class="nav-icon">◎</span><span>Account</span></button>
+        <button type="button" data-tab="tester" class="nav-link"><span class="nav-icon">⌘</span><span>API tester</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="server-light"></span><div><strong>REST API v1</strong><small>Built with Go + Gin</small></div>
+      </div>
+    </aside>
+
+    <div class="app-content">
+      <header class="topbar">
+        <div class="crumb"><span>Workspace</span><span class="slash">/</span><strong id="current-page">Articles</strong></div>
+        <div class="session">
+          <span id="session-status" class="session-pill">Browsing as guest</span>
+          <button id="go-sign-in" type="button" class="btn btn-outline btn-sm">Sign in</button>
+          <button id="sign-out" type="button" class="btn btn-outline btn-sm">Sign out</button>
+        </div>
+      </header>
+      <main>
+        <div id="notice" role="status" aria-live="polite"></div>
+
+        <section id="panel-articles" class="panel">
+          <div class="page-heading">
+            <div><div class="eyebrow">CONTENT</div><h1>Articles</h1><p>Explore articles or manage content for your website.</p></div>
+            <button id="article-new" type="button" class="btn btn-primary" hidden><span aria-hidden="true">＋</span> New article</button>
+          </div>
+          <div class="card">
+            <form id="article-search" class="toolbar">
+              <label class="field search-field">Search articles <input name="term" type="search" placeholder="Search by title..."></label>
+              <label class="field">Category <select name="categoryId" id="article-filter-category"><option value="">All categories</option></select></label>
+              <label class="field field-small">Show <select name="limit"><option>10</option><option>20</option><option>50</option></select></label>
+              <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+            <div class="table-head"><div><strong>All articles</strong><small>Click View to see the article details</small></div></div>
+            <div id="article-list" class="table-wrap"><div class="empty-state">Loading articles…</div></div>
+            <div id="article-pager" class="pager"></div>
+          </div>
+          <div id="article-detail-card" class="card detail-card" hidden><div class="card-heading"><h2>Article details</h2><button type="button" class="btn btn-quiet btn-sm" data-close="article-detail-card">Close ✕</button></div><div id="article-detail" class="detail"></div></div>
+          <div id="article-editor" class="card form-card" hidden>
+            <div class="card-heading"><div><h2 id="article-form-title">New article</h2><p>All fields are required when creating an article.</p></div><button type="button" class="btn btn-quiet btn-sm" data-close="article-editor">Close ✕</button></div>
+            <form id="article-form" class="form-grid">
+              <input type="hidden" name="id">
+              <label class="field full">Title <input name="title" placeholder="Enter a clear title"></label>
+              <label class="field full">Short summary <textarea name="excerpt" rows="2" placeholder="A short introduction to the article"></textarea></label>
+              <label class="field full">Article content <textarea name="body" rows="7" placeholder="Write the article body here..."></textarea></label>
+              <label class="field">Category <select name="category_id" id="article-edit-category"><option value="">Choose category</option></select></label>
+              <label class="field">Cover image <input type="file" name="image" accept="image/*"><span class="hint">Required for new articles; optional for edits</span></label>
+              <div class="form-actions full"><button type="submit" class="btn btn-primary">Save article</button><button id="article-reset" type="button" class="btn btn-outline">Clear</button></div>
+            </form>
+          </div>
+        </section>
+
+        <section id="panel-categories" class="panel" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ORGANIZE</div><h1>Categories</h1><p>Keep your articles organized and easy to find.</p></div><div class="actions"><button id="categories-reload" type="button" class="btn btn-outline">↻ Refresh</button><button id="category-new" type="button" class="btn btn-primary" hidden>＋ New category</button></div></div>
+          <div class="card"><div class="table-head"><div><strong>All categories</strong><small>Browse your existing categories</small></div></div><div id="category-list" class="table-wrap"><div class="empty-state">Loading categories…</div></div></div>
+          <div id="category-detail-card" class="card detail-card" hidden><div class="card-heading"><h2>Category details</h2><button type="button" class="btn btn-quiet btn-sm" data-close="category-detail-card">Close ✕</button></div><div id="category-detail" class="detail"></div></div>
+          <div id="category-editor" class="card form-card" hidden><div class="card-heading"><div><h2 id="category-form-title">New category</h2><p>Enter a name and description.</p></div><button type="button" class="btn btn-quiet btn-sm" data-close="category-editor">Close ✕</button></div>
+            <form id="category-form" class="form-grid"><input type="hidden" name="id"><label class="field full">Name <input name="name" placeholder="e.g. Tutorials"></label><label class="field full">Description <textarea name="description" rows="3" placeholder="What belongs in this category?"></textarea></label><div class="form-actions full"><button type="submit" class="btn btn-primary">Save category</button><button id="category-reset" type="button" class="btn btn-outline">Clear</button></div></form>
+          </div>
+        </section>
+
+        <section id="panel-account" class="panel" hidden>
+          <div class="page-heading"><div><div class="eyebrow">SETTINGS</div><h1>Your account</h1><p>Sign in to manage your profile and access your permissions.</p></div></div>
+          <div class="columns" id="account-auth-forms">
+            <div class="card form-card"><div class="card-heading"><div><h2>Welcome back</h2><p>Sign in to your account</p></div></div><form id="login-form" class="form-grid"><label class="field full">Email <input name="email" type="email" placeholder="you@example.com" autocomplete="username" required></label><label class="field full">Password <input name="password" type="password" placeholder="Your password" autocomplete="current-password" minlength="8" required></label><div class="full"><button type="submit" class="btn btn-primary btn-block">Sign in</button></div></form></div>
+            <div class="card form-card"><div class="card-heading"><div><h2>Create an account</h2><p>Get started with a Member account</p></div></div><form id="signup-form" class="form-grid"><label class="field full">Email <input name="email" type="email" placeholder="you@example.com" autocomplete="email" required></label><label class="field full">Password <input name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required></label><div class="full"><button type="submit" class="btn btn-outline btn-block">Create account</button></div></form></div>
+          </div>
+          <div id="account-profile-area" class="card form-card"><div class="card-heading"><div><h2>My profile</h2><p>Your current account information</p></div><button id="profile-reload" type="button" class="btn btn-outline btn-sm">↻ Refresh</button></div><div id="profile-detail" class="detail">Sign in to view your profile.</div><div class="subheading">Update profile</div><form id="profile-form" class="form-grid"><label class="field">Email <input name="email" type="email" placeholder="New email (optional)"></label><label class="field">Display name <input name="name" placeholder="New display name (optional)"></label><label class="field full">Profile photo <input type="file" name="avatar" accept="image/*"></label><div class="form-actions full"><button type="submit" class="btn btn-primary">Update profile</button></div></form></div>
+        </section>
+
+        <section id="panel-dashboard" class="panel" hidden>
+          <div class="page-heading"><div><div class="eyebrow">OVERVIEW</div><h1>Dashboard</h1><p>A quick overview of your application. Admin access required.</p></div><button id="dashboard-reload" type="button" class="btn btn-outline">↻ Refresh dashboard</button></div>
+          <div id="dashboard-data" class="dashboard-data"><div class="empty-state card">Sign in as Admin to view the dashboard.</div></div>
+        </section>
+
+        <section id="panel-users" class="panel" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ADMINISTRATION</div><h1>Users</h1><p>Manage your team and their access permissions.</p></div><button id="user-new" type="button" class="btn btn-primary" hidden>＋ New user</button></div>
+          <div class="card"><form id="user-search" class="toolbar"><label class="field search-field">Search people <input name="term" type="search" placeholder="Search by name..."></label><label class="field field-small">Show <select name="limit"><option>10</option><option>20</option><option>50</option></select></label><button type="submit" class="btn btn-primary">Search</button></form><div class="table-head"><div><strong>All users</strong><small>Manage roles and account details</small></div></div><div id="user-list" class="table-wrap"><div class="empty-state">Sign in as Admin to view users.</div></div><div id="user-pager" class="pager"></div></div>
+          <div id="user-detail-card" class="card detail-card" hidden><div class="card-heading"><h2>User details</h2><button type="button" class="btn btn-quiet btn-sm" data-close="user-detail-card">Close ✕</button></div><div id="user-detail" class="detail"></div></div>
+          <div id="user-editor" class="card form-card" hidden><div class="card-heading"><div><h2 id="user-form-title">New user</h2><p>A password is required for new accounts.</p></div><button type="button" class="btn btn-quiet btn-sm" data-close="user-editor">Close ✕</button></div><form id="user-form" class="form-grid"><input type="hidden" name="id"><label class="field">Full name <input name="name" placeholder="Full name"></label><label class="field">Email <input name="email" type="email" placeholder="person@example.com"></label><label class="field full">Password <input name="password" type="password" minlength="8" placeholder="At least 8 characters (leave blank when editing)"></label><div class="form-actions full"><button type="submit" class="btn btn-primary">Save user</button><button id="user-reset" type="button" class="btn btn-outline">Clear</button></div></form></div>
+        </section>
+
+        <section id="panel-tester" class="panel" hidden>
+          <div class="page-heading"><div><div class="eyebrow">DEVELOPER TOOLS</div><h1>API tester</h1><p>Send test requests to <code>/api/v1</code> with your current Bearer token.</p></div></div>
+          <div class="card form-card"><div class="card-heading"><h2>Build a request</h2></div><form id="test-form" class="form-grid"><label class="field">HTTP method <select name="method"><option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option></select></label><label class="field">API path <input name="path" value="/articles" placeholder="/articles/1" required></label><label class="field full">JSON request body <textarea name="body" rows="7" placeholder='{"name":"Example"}'></textarea><span class="hint">Use Article or Account forms for image uploads.</span></label><div class="form-actions full"><button type="submit" class="btn btn-primary">Send request →</button></div></form></div>
+          <div class="card"><div class="card-heading"><h2>Response</h2></div><pre id="test-result" class="response-result">No request yet.</pre></div>
+        </section>
+
+      </main>
+      <footer>Go RESTful API · HTML, CSS & JavaScript · Powered by Gin</footer>
+    </div>
+  </div>
+</body>
+</html>
