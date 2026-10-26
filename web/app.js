@@ -168,10 +168,19 @@ $("#login-form").addEventListener("submit", event => {
 });
 $("#signup-form").addEventListener("submit", event => {
   event.preventDefault();
+
+  const form = event.currentTarget;
+
   run(async () => {
-    const { email, password } = readForm(event.currentTarget);
-    const result = await api("/auth/signup", { method: "POST", body: { email, password } });
-    event.currentTarget.reset();
+    const { email, password } = readForm(form);
+
+    const result = await api("/auth/signup", {
+      method: "POST",
+      body: { email, password }
+    });
+
+    form.reset();
+
     alertMessage(`Account created: ${result?.user?.email || email}. You can now sign in.`);
   });
 });
@@ -243,15 +252,38 @@ $("#article-new").addEventListener("click", () => openNew("article"));
 $("#article-reset").addEventListener("click", () => clearEditor("article"));
 $("#article-form").addEventListener("submit", event => {
   event.preventDefault();
+
+  const form = event.currentTarget;
+
   run(async () => {
-    const form = event.currentTarget;
     const id = form.elements.namedItem("id").value.trim();
-    const body = collectMultipart(form, ["title", "body", "excerpt", "category_id", "image"]);
-    if (!id && ["title", "body", "excerpt", "category_id", "image"].some(key => !body.has(key))) throw new Error("New articles require a title, summary, body, category and image.");
-    const result = await api(id ? `/articles/${id}` : "/articles", { method: id ? "PATCH" : "POST", body });
-    clearEditor("article"); $("#article-editor").hidden = true;
+
+    const body = collectMultipart(form, [
+      "title",
+      "body",
+      "excerpt",
+      "category_id",
+      "image"
+    ]);
+
+    if (!id && ["title", "body", "excerpt", "category_id", "image"].some(key => !body.has(key))) {
+      throw new Error("New articles require a title, summary, body, category and image.");
+    }
+
+    const result = await api(
+        id ? `/articles/${id}` : "/articles",
+        {
+          method: id ? "PATCH" : "POST",
+          body
+        }
+    );
+
+    clearEditor("article");
+    $("#article-editor").hidden = true;
+
     state.articlePage = 1;
     await loadArticles();
+
     alertMessage(`Article ${id ? "updated" : "created"} (ID ${result?.article?.id || result?.articles?.id || id}).`);
   });
 });
@@ -284,8 +316,9 @@ $("#category-new").addEventListener("click", () => openNew("category"));
 $("#category-reset").addEventListener("click", () => clearEditor("category"));
 $("#category-form").addEventListener("submit", event => {
   event.preventDefault();
+  const form = event.currentTarget;
   run(async () => {
-    const fields = readForm(event.currentTarget);
+    const fields = readForm(form);
     if (!fields.id && (!fields.name || !fields.description)) throw new Error("Enter a name and description for the new category.");
     await api(fields.id ? `/categories/${fields.id}` : "/categories", { method: fields.id ? "PATCH" : "POST", body: jsonObject(fields, ["name", "description"]) });
     clearEditor("category"); $("#category-editor").hidden = true;
@@ -352,13 +385,30 @@ $("#user-new").addEventListener("click", () => openNew("user"));
 $("#user-reset").addEventListener("click", () => clearEditor("user"));
 $("#user-form").addEventListener("submit", event => {
   event.preventDefault();
+
+  const form = event.currentTarget;
+
   run(async () => {
-    const fields = readForm(event.currentTarget);
-    if (!fields.id && (!fields.name || !fields.email || !fields.password)) throw new Error("New users require a name, email and password.");
-    await api(fields.id ? `/users/${fields.id}` : "/users", { method: fields.id ? "PATCH" : "POST", body: jsonObject(fields, ["name", "email", "password"]) });
-    clearEditor("user"); $("#user-editor").hidden = true;
+    const fields = readForm(form);
+
+    if (!fields.id && (!fields.name || !fields.email || !fields.password)) {
+      throw new Error("New users require a name, email and password.");
+    }
+
+    await api(
+        fields.id ? `/users/${fields.id}` : "/users",
+        {
+          method: fields.id ? "PATCH" : "POST",
+          body: jsonObject(fields, ["name", "email", "password"])
+        }
+    );
+
+    clearEditor("user");
+    $("#user-editor").hidden = true;
+
     state.userPage = 1;
     await loadUsers();
+
     alertMessage(`User ${fields.id ? "updated" : "created"}.`);
   });
 });
@@ -400,14 +450,38 @@ for (const button of document.querySelectorAll("[data-close]")) button.addEventL
 // Generic JSON API tester. Form-specific multipart uploads live in the corresponding page.
 $("#test-form").addEventListener("submit", event => {
   event.preventDefault();
+
+  const form = event.currentTarget;
+
   run(async () => {
-    const { method, path: entered, body: raw } = readForm(event.currentTarget);
+    const { method, path: entered, body: raw } = readForm(form);
+
     const path = entered.trim();
-    if (!/^\/[a-zA-Z0-9/_?=&%+.-]*$/.test(path)) throw new Error("Enter a path like /articles?limit=5");
+
+    if (!/^\/[a-zA-Z0-9/_?=&%+.-]*$/.test(path)) {
+      throw new Error("Enter a path like /articles?limit=5");
+    }
+
     let body;
-    if (raw.trim()) { try { body = JSON.parse(raw); } catch { throw new Error("The JSON body is invalid."); } }
-    const result = await api(path, { method, ...(body === undefined ? {} : { body }) });
-    $("#test-result").textContent = result === null ? "204 No Content" : JSON.stringify(result, null, 2);
+
+    if (raw.trim()) {
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        throw new Error("The JSON body is invalid.");
+      }
+    }
+
+    const result = await api(path, {
+      method,
+      ...(body === undefined ? {} : { body })
+    });
+
+    $("#test-result").textContent =
+        result === null
+            ? "204 No Content"
+            : JSON.stringify(result, null, 2);
+
     alertMessage(`${method} ${path} succeeded.`);
   });
 });
