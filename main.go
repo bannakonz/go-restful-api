@@ -51,6 +51,7 @@ func main() {
 
 	// 6. Serve uploaded files
 	r.Static("/uploads", "./uploads")
+	r.Static("/ui", "./web")
 
 	// 7. Register API routes
 	routes.Serve(r)
